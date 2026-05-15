@@ -1,0 +1,256 @@
+export type PlatformRole = "ADMIN";
+
+export type PageStatus = "DRAFT" | "PUBLISHED" | "NEEDS_UPDATE" | "ARCHIVED";
+export type PipelineStatus =
+  | "PENDING"
+  | "GENERATING"
+  | "VALIDATING"
+  | "ANALYZING"
+  | "GEO_SCORING"
+  | "REWRITING"
+  | "IMAGE_GENERATING"
+  | "SEO_CHECKING"
+  | "READY"
+  | "FAILED"
+  | "PARTIALLY_COMPLETED"
+  | "SKIPPED_STEP";
+
+export type IdeaStatus =
+  | "PENDING_REVIEW"
+  | "APPROVED"
+  | "REJECTED"
+  | "NEEDS_REVISION";
+
+export type TaskStatus =
+  | "QUEUED"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
+
+export type SubjectStatus = "ACTIVE" | "PAUSED" | "ARCHIVED";
+
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  role: PlatformRole;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  expiresIn: number;
+  user: User;
+}
+
+export interface ApiError {
+  statusCode: number;
+  message: string;
+  path: string;
+  timestamp: string;
+}
+
+export interface Site {
+  id: string;
+  name: string;
+  domain: string;
+  defaultLanguage?: string;
+  languages?: string[];
+  timezone?: string;
+  status?: string;
+  gscProperty?: string;
+  ga4PropertyId?: string;
+  publishWebhookUrl?: string;
+  autoPublish?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateSiteResponse {
+  site: Site;
+  contentApiKey: string;
+}
+
+export interface RotateKeyResponse {
+  siteId: string;
+  contentApiKey: string;
+  contentApiKeyCreatedAt: string;
+}
+
+export interface SiteConfig {
+  id?: string;
+  siteId: string;
+  runtimeConfig?: {
+    enableAnalysis?: boolean;
+    enableRewrite?: boolean;
+    enableImageGeneration?: boolean;
+    enableSeoCheck?: boolean;
+    maxRetries?: number;
+    qualityThreshold?: number;
+  };
+  qualityThreshold?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  description?: string;
+  contentType?: string;
+  requiredSections?: Record<string, unknown>;
+  headingStructure?: Record<string, unknown>;
+  seoRules?: Record<string, unknown>;
+  faqStructure?: Record<string, unknown>;
+  ctaPlacement?: string;
+  internalLinkingRules?: Record<string, unknown>;
+  formattingInstructions?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Subject {
+  id: string;
+  siteId: string;
+  templateId?: string;
+  title: string;
+  description?: string;
+  primaryKeywords: string[];
+  secondaryKeywords?: string[];
+  searchIntent?: string;
+  language?: string;
+  country?: string;
+  city?: string;
+  seoGoal?: string;
+  contentCountTarget?: number;
+  hallucinationSensitivity?: string;
+  riskCategory?: string;
+  requiresFactualValidation?: boolean;
+  strictReviewMode?: boolean;
+  status: SubjectStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ContentIdea {
+  id: string;
+  subjectId?: string;
+  title: string;
+  slug?: string;
+  targetKeyword?: string;
+  metaDescription?: string;
+  searchIntent?: string;
+  outline?: Record<string, unknown>;
+  headings?: string[];
+  faqSuggestions?: unknown[];
+  internalLinkingSuggestions?: string[];
+  contentType?: string;
+  confidenceScore?: number;
+  hallucinationRiskScore?: number;
+  status: IdeaStatus;
+  reviewNotes?: string;
+  generatedBy?: string;
+  generatedModel?: string;
+  createdAt?: string;
+  subject?: Subject;
+}
+
+export interface IdeaTask {
+  id: string;
+  ideaId?: string;
+  subjectId?: string;
+  pageId?: string;
+  status: TaskStatus;
+  createdAt?: string;
+}
+
+export interface Keyword {
+  id: string;
+  siteId: string;
+  keyword: string;
+  searchVolume?: number;
+  difficulty?: number;
+  status?: string;
+  createdAt?: string;
+}
+
+export interface Page {
+  id: string;
+  siteId: string;
+  title: string;
+  slug: string;
+  status: PageStatus;
+  pipelineStatus: PipelineStatus;
+  language?: string;
+  finalContent?: string;
+  metaDescription?: string;
+  seoScore?: number;
+  geoScore?: number;
+  publishedAt?: string;
+  errorLog?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  keywords?: Keyword[];
+}
+
+export interface ContentTask {
+  id: string;
+  siteId?: string;
+  pageId?: string;
+  status: TaskStatus;
+  type?: string;
+  currentStep?: string;
+  attempts?: number;
+  errorLog?: string;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt?: string;
+}
+
+export interface PublishResult {
+  published: boolean;
+  webhookFired?: boolean;
+  webhookStatus?: number;
+  skippedReason?: string;
+}
+
+export interface ContentPreview {
+  version: string;
+  status: string;
+  draft?: string | null;
+  finalContent?: string | null;
+  analysis?: {
+    seoScore?: number;
+    readabilityScore?: number;
+    intentMatch?: number;
+    contentDepth?: number;
+    redundancyScore?: number;
+    gaps?: string[];
+  };
+  meta?: {
+    pipelineStatus?: PipelineStatus;
+    pipelineVersion?: number;
+    cost?: number;
+    modelUsed?: string;
+    completedSteps?: string[];
+    skippedSteps?: string[];
+  };
+}
+
+export interface GenerateIdeasResponse {
+  jobQueued: boolean;
+  subjectId: string;
+  count: number;
+}
+
+export interface SeoMetric {
+  id?: string;
+  siteId: string;
+  pageId?: string;
+  date: string;
+  impressions?: number;
+  clicks?: number;
+  ctr?: number;
+  position?: number;
+}

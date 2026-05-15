@@ -1,0 +1,90 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/lib/store";
+import type { LoginResponse } from "@/types/api";
+
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+export function LoginForm() {
+  const router = useRouter();
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+
+  async function onSubmit(values: FormValues) {
+    try {
+      const data = await api.post<LoginResponse>("/identity/login", values);
+      setAuth(data.accessToken, data.user);
+      toast.success("Welcome back");
+      router.push("/dashboard");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Login failed");
+    }
+  }
+
+  return (
+    <Card className="w-full max-w-md border-0 shadow-2xl shadow-violet-500/10">
+      <CardHeader className="space-y-1 text-center">
+        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">
+          N
+        </div>
+        <CardTitle className="text-2xl">Nestino Admin</CardTitle>
+        <CardDescription>Traffic Engine operator panel</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="admin@example.com"
+              {...register("email")}
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" {...register("password")} />
+            {errors.password && (
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Sign in
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
