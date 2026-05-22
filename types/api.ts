@@ -183,7 +183,10 @@ export interface Page {
   status: PageStatus;
   pipelineStatus: PipelineStatus;
   language?: string;
+  rawDraft?: string;
   finalContent?: string;
+  generatedImageBase64?: string;
+  generatedImageCdnUrl?: string;
   metaDescription?: string;
   seoScore?: number;
   geoScore?: number;
@@ -192,6 +195,13 @@ export interface Page {
   createdAt?: string;
   updatedAt?: string;
   keywords?: Keyword[];
+}
+
+export interface RetryImageGenerationResponse {
+  pageId: number;
+  contentTaskId: number;
+  resumedFrom: string;
+  checkpointLastStep: string;
 }
 
 export interface ContentTask {

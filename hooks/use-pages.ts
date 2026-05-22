@@ -2,7 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
-import type { ContentPreview, Page, PublishResult } from "@/types/api";
+import type {
+  ContentPreview,
+  Page,
+  PublishResult,
+  RetryImageGenerationResponse,
+} from "@/types/api";
 
 const TERMINAL_PIPELINE = new Set(["READY", "FAILED"]);
 
@@ -42,14 +47,23 @@ export function usePage(pageId: string | undefined) {
 
 export function usePageMutations(pageId: string) {
   const qc = useQueryClient();
-  const invalidate = () =>
+  const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["pages", "detail", pageId] });
+    qc.invalidateQueries({ queryKey: ["content-tasks"] });
+  };
 
   return {
     generate: useMutation({
       mutationFn: (reset?: boolean) =>
         api.post(
           `/pages/${pageId}/generate-content${reset ? "?resetCheckpoint=true" : ""}`,
+        ),
+      onSuccess: invalidate,
+    }),
+    retryImageGeneration: useMutation({
+      mutationFn: () =>
+        api.post<RetryImageGenerationResponse>(
+          `/pages/${pageId}/retry-image-generation`,
         ),
       onSuccess: invalidate,
     }),
