@@ -204,6 +204,19 @@ export interface RetryImageGenerationResponse {
   checkpointLastStep: string;
 }
 
+export type CompletePipelineFromStep =
+  | "seo_check"
+  | "internal_linking"
+  | "final_geo_schema";
+
+export interface CompletePipelineResponse {
+  pageId: number;
+  contentTaskId: number;
+  resumedFrom: string;
+  checkpointLastStep: string;
+  skippedSteps: string[];
+}
+
 export interface ContentTask {
   id: string | number;
   siteId?: string | number;

@@ -3,6 +3,8 @@ import { useState } from "react";
 import { api, apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 import type {
+  CompletePipelineFromStep,
+  CompletePipelineResponse,
   ContentPreview,
   Page,
   PublishResult,
@@ -65,6 +67,17 @@ export function usePageMutations(pageId: string) {
         api.post<RetryImageGenerationResponse>(
           `/pages/${pageId}/retry-image-generation`,
         ),
+      onSuccess: invalidate,
+    }),
+    completePipeline: useMutation({
+      mutationFn: (fromStep?: CompletePipelineFromStep) => {
+        const qs = fromStep
+          ? `?fromStep=${encodeURIComponent(fromStep)}`
+          : "";
+        return api.post<CompletePipelineResponse>(
+          `/pages/${pageId}/complete-pipeline${qs}`,
+        );
+      },
       onSuccess: invalidate,
     }),
     publish: useMutation({

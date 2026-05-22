@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { ImageIcon, Loader2, RefreshCw, Send, Sparkles } from "lucide-react";
+import {
+  CheckCircle2,
+  ImageIcon,
+  Loader2,
+  RefreshCw,
+  Send,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +32,9 @@ import {
   usePagePreview,
 } from "@/hooks/use-pages";
 import {
+  canCompletePipeline,
   canRetryImageGeneration,
+  getPartialCompletionHint,
   isPipelineRunning,
   pageHasContent,
   pageHasHeroImage,
@@ -36,8 +45,11 @@ export default function PageDetailPage() {
   const { data: page, isLoading } = usePage(pageId);
   const { data: preview } = usePagePreview(pageId, siteId);
   const { data: logs } = usePageLogs(pageId, siteId);
-  const { generate, publish, retryImageGeneration } = usePageMutations(pageId);
+  const { generate, publish, retryImageGeneration, completePipeline } =
+    usePageMutations(pageId);
   const [retryImageOpen, setRetryImageOpen] = useState(false);
+  const [completePipelineOpen, setCompletePipelineOpen] = useState(false);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
 
   const content =
     page?.finalContent ??
@@ -47,6 +59,8 @@ export default function PageDetailPage() {
   const hasContent = page ? pageHasContent(page) : !!content;
   const pipelineRunning = page ? isPipelineRunning(page.pipelineStatus) : false;
   const showRetryImage = page ? canRetryImageGeneration(page) : false;
+  const showCompletePipeline = page ? canCompletePipeline(page) : false;
+  const partialHint = page ? getPartialCompletionHint(page) : null;
 
   async function handlePublish() {
     try {
@@ -72,6 +86,28 @@ export default function PageDetailPage() {
       toast.success("Image generation retry queued");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Image retry failed");
+    }
+  }
+
+  async function handleCompletePipeline() {
+    try {
+      const result = await completePipeline.mutateAsync(undefined);
+      setCompletePipelineOpen(false);
+      toast.success(
+        `Pipeline resumed from ${result.resumedFrom} (task #${result.contentTaskId})`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Complete pipeline failed");
+    }
+  }
+
+  async function handleRegenerate() {
+    try {
+      await generate.mutateAsync(true);
+      setRegenerateOpen(false);
+      toast.success("Regeneration started");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Regeneration failed");
     }
   }
 
@@ -108,12 +144,7 @@ export default function PageDetailPage() {
             )}
             <Button
               variant="outline"
-              onClick={() =>
-                generate.mutate(true, {
-                  onSuccess: () => toast.success("Regeneration started"),
-                  onError: (e) => toast.error(e.message),
-                })
-              }
+              onClick={() => setRegenerateOpen(true)}
               disabled={generate.isPending || pipelineRunning}
             >
               <RefreshCw className="mr-2 h-4 w-4" />
@@ -127,6 +158,16 @@ export default function PageDetailPage() {
               >
                 <ImageIcon className="mr-2 h-4 w-4" />
                 Retry image generation
+              </Button>
+            )}
+            {showCompletePipeline && (
+              <Button
+                variant="outline"
+                onClick={() => setCompletePipelineOpen(true)}
+                disabled={completePipeline.isPending || pipelineRunning}
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Complete pipeline
               </Button>
             )}
             <Button
@@ -158,12 +199,19 @@ export default function PageDetailPage() {
           <CardTitle className="text-base">Pipeline</CardTitle>
         </CardHeader>
         <CardContent>
-          {page.pipelineStatus === "PARTIALLY_COMPLETED" && (
+          {partialHint && (
             <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-              Content generated, but image step failed. You can retry image
-              generation.
+              {partialHint}
             </div>
           )}
+          {page.pipelineStatus === "FAILED" &&
+            pageHasContent(page) &&
+            pageHasHeroImage(page) && (
+              <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+                Pipeline failed after the hero image was generated. Use Complete
+                pipeline to finish remaining steps without re-running Imagen.
+              </div>
+            )}
           <PipelineStepper status={page.pipelineStatus} />
           {page.errorLog && (
             <pre className="mt-4 rounded bg-destructive/10 p-3 text-xs text-destructive">
@@ -267,6 +315,70 @@ export default function PageDetailPage() {
                 </>
               ) : (
                 "Retry image"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={completePipelineOpen} onOpenChange={setCompletePipelineOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete pipeline?</DialogTitle>
+            <DialogDescription>
+              Finish SEO, linking, and finalize this page? The existing hero
+              image will be kept.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setCompletePipelineOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCompletePipeline}
+              disabled={completePipeline.isPending}
+            >
+              {completePipeline.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Queuing…
+                </>
+              ) : (
+                "Complete pipeline"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={regenerateOpen} onOpenChange={setRegenerateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Regenerate all content?</DialogTitle>
+            <DialogDescription>
+              This restarts the full pipeline from scratch, including article
+              text and hero image. Existing content will be replaced.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setRegenerateOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRegenerate}
+              disabled={generate.isPending}
+            >
+              {generate.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Starting…
+                </>
+              ) : (
+                "Regenerate all"
               )}
             </Button>
           </div>
