@@ -21,7 +21,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SiteDetailTabs } from "@/components/sites/site-detail-tabs";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useContentTasks } from "@/hooks/use-tasks";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatShortId } from "@/lib/utils";
 
 export default function TasksPage() {
   const { siteId } = useParams<{ siteId: string }>();
@@ -75,7 +75,7 @@ export default function TasksPage() {
                   <TableCell>{task.currentStep ?? "—"}</TableCell>
                   <TableCell>{task.attempts ?? 0}</TableCell>
                   <TableCell className="font-mono text-xs">
-                    {task.pageId?.slice(0, 8) ?? "—"}
+                    {formatShortId(task.pageId)}
                   </TableCell>
                   <TableCell>{formatDate(task.startedAt)}</TableCell>
                 </TableRow>

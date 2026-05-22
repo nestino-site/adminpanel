@@ -19,7 +19,8 @@ export default function DashboardPage() {
   const { data: ideas } = useAllPendingIdeas(activeSiteId ?? undefined);
   const { data: tasks } = useContentTasks(activeSiteId ?? undefined);
 
-  const readyPages = pages?.filter((p) => p.pipelineStatus === "READY").length ?? 0;
+  const pageList = Array.isArray(pages) ? pages : [];
+  const readyPages = pageList.filter((p) => p.pipelineStatus === "READY").length;
   const pendingIdeas = ideas?.length ?? 0;
   const failedTasks =
     tasks?.filter((t) => t.status === "FAILED").length ?? 0;
@@ -106,14 +107,14 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {pages && pages.length > 0 && (
+      {pageList.length > 0 && (
         <Card className="mt-8">
           <CardHeader>
             <CardTitle>Recent pages</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {pages.slice(0, 10).map((page) => (
+              {pageList.slice(0, 10).map((page) => (
                 <li
                   key={page.id}
                   className="flex items-center justify-between rounded-lg border px-4 py-2 text-sm"

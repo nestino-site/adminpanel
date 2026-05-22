@@ -66,8 +66,8 @@ function resolveVariant(status: string, kind?: "page" | "pipeline" | "idea" | "t
   return "default" as const;
 }
 
-function formatLabel(status: string) {
-  return status
+function formatLabel(status: StatusKind) {
+  return String(status ?? "unknown")
     .toLowerCase()
     .split("_")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))

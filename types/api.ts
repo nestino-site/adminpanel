@@ -195,9 +195,9 @@ export interface Page {
 }
 
 export interface ContentTask {
-  id: string;
-  siteId?: string;
-  pageId?: string;
+  id: string | number;
+  siteId?: string | number;
+  pageId?: string | number;
   status: TaskStatus;
   type?: string;
   currentStep?: string;
