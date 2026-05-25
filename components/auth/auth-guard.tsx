@@ -2,16 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, setAccessToken } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
+import { useAuthHydration } from "@/lib/use-auth-hydration";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const hydrated = useAuthHydration();
   const { accessToken, user, setAuth, clearAuth } = useAuthStore();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (!hydrated) return;
+
     let cancelled = false;
 
     async function verify() {
@@ -19,10 +23,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         router.replace("/login");
         return;
       }
+
+      setAccessToken(accessToken);
+
       if (user) {
         setReady(true);
         return;
       }
+
       try {
         const me = await api.get<{
           id: string;
@@ -42,13 +50,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       }
     }
 
+    setReady(false);
     verify();
     return () => {
       cancelled = true;
     };
-  }, [accessToken, user, setAuth, clearAuth, router]);
+  }, [hydrated, accessToken, user, setAuth, clearAuth, router]);
 
-  if (!ready) {
+  if (!hydrated || !ready) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-4 p-8">
         <Skeleton className="h-12 w-12 rounded-full" />
