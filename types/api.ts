@@ -172,7 +172,29 @@ export interface Keyword {
   searchVolume?: number;
   difficulty?: number;
   status?: string;
+  intent?: string;
+  priority?: number;
+  targetUrl?: string;
   createdAt?: string;
+}
+
+export interface CreateKeywordBody {
+  siteId: number;
+  keyword: string;
+  language?: "EN";
+  intent?: "COMMERCIAL";
+  priority?: number;
+  targetUrl?: string;
+}
+
+export interface CreatePageBody {
+  siteId: number;
+  keywordId: number;
+  slug: string;
+  language?: "EN";
+  title?: string;
+  metaTitle?: string;
+  metaDescription?: string;
 }
 
 export interface Page {
@@ -187,6 +209,7 @@ export interface Page {
   finalContent?: string;
   generatedImageBase64?: string;
   generatedImageCdnUrl?: string;
+  metaTitle?: string;
   metaDescription?: string;
   seoScore?: number;
   geoScore?: number;

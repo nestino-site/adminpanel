@@ -40,7 +40,15 @@ export default function PagesListPage() {
 
   return (
     <div>
-      <PageHeader title="Pages" description="Content pages and pipeline status" />
+      <PageHeader
+        title="Pages"
+        description="Content pages and pipeline status"
+        action={
+          <Button asChild>
+            <Link href={`/sites/${siteId}/guides/create`}>Create Guide</Link>
+          </Button>
+        }
+      />
       <SiteDetailTabs siteId={siteId} />
 
       <div className="mb-4 flex flex-wrap gap-2">

@@ -9,6 +9,7 @@ const tabs = [
   { slug: "subjects", label: "Subjects" },
   { slug: "ideas/review", label: "Ideas" },
   { slug: "pages", label: "Pages" },
+  { slug: "guides/create", label: "Create Guide" },
   { slug: "tasks", label: "Tasks" },
   { slug: "seo", label: "SEO" },
 ];

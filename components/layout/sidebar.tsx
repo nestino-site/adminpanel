@@ -4,6 +4,7 @@ import type React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BookOpen,
   BookTemplate,
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,7 @@ function siteNav(siteId: string) {
     { href: `/sites/${siteId}/subjects`, label: "Subjects", icon: Sparkles },
     { href: `/sites/${siteId}/ideas/review`, label: "Review Ideas", icon: Lightbulb },
     { href: `/sites/${siteId}/pages`, label: "Pages", icon: FileText },
+    { href: `/sites/${siteId}/guides/create`, label: "Create Guide", icon: BookOpen },
     { href: `/sites/${siteId}/tasks`, label: "Tasks", icon: ListTodo },
     { href: `/sites/${siteId}/seo`, label: "SEO", icon: Search },
   ];
