@@ -35,11 +35,13 @@ import {
   type GuideStepId,
 } from "@/lib/guide-workflow";
 import type { GuideCreatorState } from "@/hooks/use-guide-creator";
+import { useKeywords } from "@/hooks/use-keywords";
 import {
   canCompletePipeline,
   canRetryImageGeneration,
 } from "@/lib/page-pipeline";
 import type { Page } from "@/types/api";
+import { useMemo, useState } from "react";
 
 function StepButton({
   label,
@@ -95,7 +97,28 @@ export function GuideWizardForm({
     executeStep,
     pollStatus,
     resumeExistingPage,
+    selectExistingKeyword,
+    clearKeywordSelection,
   } = creator;
+
+  const { data: keywords, isLoading: keywordsLoading } = useKeywords(siteId);
+  const [manualKeywordId, setManualKeywordId] = useState("");
+
+  const matchingKeyword = useMemo(
+    () =>
+      keywords?.find(
+        (k) => k.keyword.toLowerCase() === form.keyword.trim().toLowerCase(),
+      ),
+    [keywords, form.keyword],
+  );
+
+  const selectedKeyword = useMemo(
+    () => keywords?.find((k) => String(k.id) === ids.keywordId),
+    [keywords, ids.keywordId],
+  );
+
+  const keywordReady =
+    !!ids.keywordId && stepStatus.createKeyword === "success";
 
   const duplicatePage = existingPage;
 
@@ -130,9 +153,7 @@ export function GuideWizardForm({
 
   const currentPage = page ?? duplicatePage;
   const canCreatePage =
-    !!ids.keywordId &&
-    stepStatus.createKeyword === "success" &&
-    (!duplicatePage || creator.resumedExisting);
+    keywordReady && (!duplicatePage || creator.resumedExisting);
   const canGenerate = !!ids.pageId && stepStatus.createPage === "success";
   const canPublish =
     !!ids.pageId &&
@@ -252,8 +273,132 @@ export function GuideWizardForm({
             <Input
               id="keyword"
               value={form.keyword}
-              onChange={(e) => handleFieldChange("keyword", e.target.value)}
+              onChange={(e) => {
+                handleFieldChange("keyword", e.target.value);
+                if (ids.keywordId && stepStatus.createKeyword === "success") {
+                  clearKeywordSelection();
+                }
+              }}
             />
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-dashed p-3">
+            <p className="text-sm font-medium">Use existing keyword</p>
+            <p className="text-xs text-muted-foreground">
+              Skip step 1 if the keyword is already in the database — pick it
+              here, then run Create Page.
+            </p>
+
+            {matchingKeyword && !keywordReady && (
+              <div className="flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm dark:bg-emerald-950/30">
+                <span>
+                  Match found: #{matchingKeyword.id}{" "}
+                  <strong>{matchingKeyword.keyword}</strong>
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => selectExistingKeyword(String(matchingKeyword.id))}
+                >
+                  Use this keyword
+                </Button>
+              </div>
+            )}
+
+            {keywordReady && selectedKeyword && (
+              <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span>
+                  Using keyword #{selectedKeyword.id}:{" "}
+                  <strong>{selectedKeyword.keyword}</strong>
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    clearKeywordSelection();
+                    setManualKeywordId("");
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+
+            {keywordReady && ids.keywordId && !selectedKeyword && (
+              <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span>
+                  Using keyword ID <strong>#{ids.keywordId}</strong>
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    clearKeywordSelection();
+                    setManualKeywordId("");
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <Label htmlFor="existingKeyword">Select from list</Label>
+              <Select
+                value={ids.keywordId ?? ""}
+                onValueChange={(id) => {
+                  selectExistingKeyword(id);
+                  setManualKeywordId(id);
+                }}
+                disabled={keywordsLoading}
+              >
+                <SelectTrigger id="existingKeyword">
+                  <SelectValue
+                    placeholder={
+                      keywordsLoading
+                        ? "Loading keywords…"
+                        : "Choose existing keyword"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {keywords?.map((k) => (
+                    <SelectItem key={k.id} value={String(k.id)}>
+                      #{k.id} — {k.keyword}
+                      {k.targetUrl ? ` → ${k.targetUrl}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="manualKeywordId">Or enter keyword ID</Label>
+                <Input
+                  id="manualKeywordId"
+                  type="number"
+                  placeholder="e.g. 10"
+                  value={manualKeywordId}
+                  onChange={(e) => setManualKeywordId(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!manualKeywordId.trim()}
+                  onClick={() => selectExistingKeyword(manualKeywordId.trim())}
+                >
+                  Apply ID
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -363,12 +508,20 @@ export function GuideWizardForm({
         <div className="space-y-2">
           <p className="text-sm font-medium">Workflow steps</p>
           <StepButton
-            label="1. Create Keyword"
+            label={
+              keywordReady && stepStatus.createKeyword === "success" && selectedKeyword
+                ? "1. Create Keyword (skipped — using existing)"
+                : keywordReady
+                  ? "1. Create Keyword (skipped — ID set)"
+                  : "1. Create Keyword"
+            }
             onClick={() => runStep("createKeyword")}
             loading={stepStatus.createKeyword === "loading"}
-            done={stepStatus.createKeyword === "success"}
+            done={keywordReady}
             error={stepStatus.createKeyword === "error"}
-            disabled={!!duplicatePage && !creator.resumedExisting}
+            disabled={
+              keywordReady || (!!duplicatePage && !creator.resumedExisting)
+            }
           />
           <StepButton
             label="2. Create Page"

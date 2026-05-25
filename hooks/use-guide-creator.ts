@@ -256,6 +256,16 @@ export function useGuideCreator(siteId: string) {
     [],
   );
 
+  const selectExistingKeyword = useCallback((keywordId: string) => {
+    setIds((prev) => ({ ...prev, keywordId }));
+    setStepStatus((prev) => ({ ...prev, createKeyword: "success" }));
+  }, []);
+
+  const clearKeywordSelection = useCallback(() => {
+    setIds((prev) => ({ ...prev, keywordId: null }));
+    setStepStatus((prev) => ({ ...prev, createKeyword: "idle" }));
+  }, []);
+
   useEffect(() => {
     autoPublishFired.current = false;
   }, [ids.pageId]);
@@ -296,6 +306,8 @@ export function useGuideCreator(siteId: string) {
     executeStep,
     pollStatus,
     resumeExistingPage,
+    selectExistingKeyword,
+    clearKeywordSelection,
     refetchPage,
   };
 }
