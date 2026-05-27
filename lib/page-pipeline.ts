@@ -40,10 +40,13 @@ export function canRetryImageGeneration(page: Page): boolean {
   );
 }
 
-export function canRegenerateHeroImage(page: Page): boolean {
+export function canRegenerateHeroImage(
+  page: Page,
+  hasContent = pageHasContent(page),
+): boolean {
   if (
     !pageHasHeroImage(page) ||
-    !pageHasContent(page) ||
+    !hasContent ||
     isPipelineRunning(page.pipelineStatus)
   ) {
     return false;

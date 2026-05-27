@@ -72,7 +72,9 @@ export default function PageDetailPage() {
   const hasContent = page ? pageHasContent(page) : !!content;
   const pipelineRunning = page ? isPipelineRunning(page.pipelineStatus) : false;
   const showRetryImage = page ? canRetryImageGeneration(page) : false;
-  const showRegenerateHero = page ? canRegenerateHeroImage(page) : false;
+  const showRegenerateHero = page
+    ? canRegenerateHeroImage(page, hasContent)
+    : false;
   const showCompletePipeline = page ? canCompletePipeline(page) : false;
   const partialHint = page ? getPartialCompletionHint(page) : null;
 
@@ -205,6 +207,29 @@ export default function PageDetailPage() {
                 Retry image generation
               </Button>
             )}
+            {pageHasHeroImage(page) && (
+              <Button
+                variant="outline"
+                onClick={() => setRegenerateHeroOpen(true)}
+                disabled={
+                  !showRegenerateHero || regenerateHeroImage.isPending
+                }
+                title={
+                  !hasContent
+                    ? "Generate content first"
+                    : pipelineRunning
+                      ? "Wait for pipeline to finish"
+                      : undefined
+                }
+              >
+                {regenerateHeroImage.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                )}
+                Regenerate image
+              </Button>
+            )}
             {showCompletePipeline && (
               <Button
                 variant="outline"
@@ -297,26 +322,31 @@ export default function PageDetailPage() {
         <Card className="mb-6">
           <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-base">Hero image</CardTitle>
-            {showRegenerateHero && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setRegenerateHeroOpen(true)}
-                disabled={regenerateHeroImage.isPending || pipelineRunning}
-              >
-                {regenerateHeroImage.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Regenerating…
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="mr-2 h-4 w-4" />
-                    Regenerate image
-                  </>
-                )}
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRegenerateHeroOpen(true)}
+              disabled={!showRegenerateHero || regenerateHeroImage.isPending}
+              title={
+                !hasContent
+                  ? "Generate content first"
+                  : pipelineRunning
+                    ? "Wait for pipeline to finish"
+                    : "Generate a new Imagen hero image (30–90s)"
+              }
+            >
+              {regenerateHeroImage.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Regenerating…
+                </>
+              ) : (
+                <>
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  Regenerate image
+                </>
+              )}
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             {regenerateHeroImage.isPending && (
