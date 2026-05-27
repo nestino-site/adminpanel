@@ -71,22 +71,33 @@ export function canCompletePipeline(
   );
 }
 
-/** Content + hero image done; pipeline stopped before READY (Flow A). */
-export function canFinalizeAfterImage(page: Page, hasContent: boolean): boolean {
-  return canCompletePipeline(page, hasContent);
+/** Content + hero image done; pipeline not READY yet — eligible for mark-content-ready. */
+export function canMarkContentReady(page: Page, hasContent: boolean): boolean {
+  if (
+    !hasContent ||
+    !pageHasHeroImage(page) ||
+    isPipelineRunning(page.pipelineStatus) ||
+    page.pipelineStatus === "READY"
+  ) {
+    return false;
+  }
+  return (
+    page.pipelineStatus === "PARTIALLY_COMPLETED" ||
+    page.pipelineStatus === "FAILED"
+  );
 }
 
-export function getFinalizePipelineHint(page: Page): string {
+export function getMarkContentReadyHint(page: Page): string {
   if (page.pipelineStatus === "FAILED") {
-    return "Content and hero image are ready, but the pipeline failed at a later step. Finalize to run SEO check, internal linking, and schema without regenerating text or image.";
+    return "Content and hero image are ready, but the pipeline failed at a later step. Mark ready to set status to Ready for human review and publish. YMYL audit results stay advisory.";
   }
-  return "Content and hero image are ready. Finalize to finish SEO, linking, and schema.";
+  return "Content and hero image are ready. Mark ready to approve for publish — audit warnings do not block this step.";
 }
 
 export function getPartialCompletionHint(page: Page): string | null {
   if (page.pipelineStatus !== "PARTIALLY_COMPLETED") return null;
   if (pageHasHeroImage(page)) {
-    return "Content and hero image are ready, but later pipeline steps failed. Use Complete pipeline to finish SEO, linking, and schema.";
+    return "Content and hero image are ready, but later pipeline steps failed. Use Mark ready to set the page to Ready for review and publish.";
   }
   return "Content generated, but image step failed. You can retry image generation.";
 }

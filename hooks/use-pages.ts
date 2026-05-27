@@ -11,6 +11,7 @@ import type {
   Page,
   PublishResult,
   RegenerateHeroImageResponse,
+  MarkContentReadyResponse,
   RetryImageGenerationResponse,
 } from "@/types/api";
 
@@ -81,6 +82,13 @@ export function usePageMutations(pageId: string) {
           `/pages/${pageId}/regenerate-hero-image${qs}`,
         );
       },
+      onSuccess: invalidate,
+    }),
+    markContentReady: useMutation({
+      mutationFn: () =>
+        api.post<MarkContentReadyResponse>(
+          `/pages/${pageId}/mark-content-ready`,
+        ),
       onSuccess: invalidate,
     }),
     completePipeline: useMutation({

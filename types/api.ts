@@ -266,6 +266,12 @@ export interface RegenerateHeroImageResponse {
   cdn: RegenerateHeroImageCdnResult | null;
 }
 
+export interface MarkContentReadyResponse {
+  pageId: number;
+  pipelineStatus: PipelineStatus;
+  message: string;
+}
+
 export type CompletePipelineFromStep =
   | "seo_check"
   | "internal_linking"

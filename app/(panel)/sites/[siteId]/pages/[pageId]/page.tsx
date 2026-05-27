@@ -40,8 +40,8 @@ import {
   usePagePreview,
 } from "@/hooks/use-pages";
 import {
-  canFinalizeAfterImage,
-  getFinalizePipelineHint,
+  canMarkContentReady,
+  getMarkContentReadyHint,
   canRegenerateHeroImage,
   canRetryImageGeneration,
   getPartialCompletionHint,
@@ -55,12 +55,12 @@ export default function PageDetailPage() {
   const { data: page, isLoading } = usePage(pageId);
   const { data: preview } = usePagePreview(pageId, siteId);
   const { data: logs } = usePageLogs(pageId, siteId);
-  const { generate, publish, retryImageGeneration, regenerateHeroImage, completePipeline } =
+  const { generate, publish, retryImageGeneration, regenerateHeroImage, markContentReady } =
     usePageMutations(pageId);
   const [retryImageOpen, setRetryImageOpen] = useState(false);
   const [regenerateHeroOpen, setRegenerateHeroOpen] = useState(false);
   const [uploadCdnOnRegenerate, setUploadCdnOnRegenerate] = useState(true);
-  const [completePipelineOpen, setCompletePipelineOpen] = useState(false);
+  const [markReadyOpen, setMarkReadyOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
   const auditRef = useRef<ContentAuditPanelHandle>(null);
@@ -76,9 +76,7 @@ export default function PageDetailPage() {
   const showRegenerateHero = page
     ? canRegenerateHeroImage(page, hasContent)
     : false;
-  const showCompletePipeline = page
-    ? canFinalizeAfterImage(page, hasContent)
-    : false;
+  const showMarkReady = page ? canMarkContentReady(page, hasContent) : false;
   const partialHint = page ? getPartialCompletionHint(page) : null;
 
   async function handlePublish() {
@@ -132,17 +130,13 @@ export default function PageDetailPage() {
     }
   }
 
-  async function handleCompletePipeline() {
+  async function handleMarkContentReady() {
     try {
-      const fromStep =
-        page && pageHasHeroImage(page) ? ("seo_check" as const) : undefined;
-      const result = await completePipeline.mutateAsync(fromStep);
-      setCompletePipelineOpen(false);
-      toast.success(
-        `Finalizing from ${result.resumedFrom} (task #${result.contentTaskId}) — page will poll until Ready`,
-      );
+      const result = await markContentReady.mutateAsync();
+      setMarkReadyOpen(false);
+      toast.success(result.message ?? "Page marked ready for review and publish");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Finalize failed");
+      toast.error(e instanceof Error ? e.message : "Mark ready failed");
     }
   }
 
@@ -235,18 +229,18 @@ export default function PageDetailPage() {
                 Regenerate image
               </Button>
             )}
-            {showCompletePipeline && (
+            {showMarkReady && (
               <Button
                 variant="outline"
-                onClick={() => setCompletePipelineOpen(true)}
-                disabled={completePipeline.isPending || pipelineRunning}
+                onClick={() => setMarkReadyOpen(true)}
+                disabled={markContentReady.isPending || pipelineRunning}
               >
-                {completePipeline.isPending ? (
+                {markContentReady.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                 )}
-                Finalize page
+                Mark ready
               </Button>
             )}
             <Button
@@ -305,34 +299,27 @@ export default function PageDetailPage() {
           <CardTitle className="text-base">Pipeline</CardTitle>
         </CardHeader>
         <CardContent>
-          {showCompletePipeline && (
+          {showMarkReady && (
             <div className="mb-4 rounded-lg border border-violet-300 bg-violet-50 px-4 py-4 dark:border-violet-800 dark:bg-violet-950/40">
               <p className="mb-3 text-sm text-violet-950 dark:text-violet-100">
-                {getFinalizePipelineHint(page)}
+                {getMarkContentReadyHint(page)}
               </p>
               <Button
-                onClick={() => setCompletePipelineOpen(true)}
-                disabled={completePipeline.isPending || pipelineRunning}
+                onClick={() => setMarkReadyOpen(true)}
+                disabled={markContentReady.isPending || pipelineRunning}
               >
-                {completePipeline.isPending ? (
+                {markContentReady.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Finalizing…
+                    Marking ready…
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Finalize page
+                    Mark ready
                   </>
                 )}
               </Button>
-            </div>
-          )}
-          {(completePipeline.isPending ||
-            isPipelineRunning(page.pipelineStatus)) && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              Finishing pipeline (SEO → linking → schema)…
             </div>
           )}
           {partialHint && (
@@ -344,8 +331,8 @@ export default function PageDetailPage() {
             pageHasContent(page) &&
             pageHasHeroImage(page) && (
               <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-                Pipeline failed after the hero image was generated. Use Complete
-                pipeline to finish remaining steps without re-running Imagen.
+                Pipeline failed after the hero image was generated. Use Mark
+                ready to set the page to Ready for review and publish.
               </div>
             )}
           <PipelineStepper status={page.pipelineStatus} />
@@ -545,35 +532,35 @@ export default function PageDetailPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={completePipelineOpen} onOpenChange={setCompletePipelineOpen}>
+      <Dialog open={markReadyOpen} onOpenChange={setMarkReadyOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Finalize page?</DialogTitle>
+            <DialogTitle>Mark page ready?</DialogTitle>
             <DialogDescription>
-              Content and hero image will be kept. This runs SEO check, YMYL
-              audit, internal linking, and schema steps from{" "}
-              <code className="text-xs">seo_check</code> until the page is
-              Ready. Progress updates automatically on this screen.
+              Sets pipeline status to Ready so you can publish after human
+              review. Content and hero image are kept. YMYL audit warnings in{" "}
+              <code className="text-xs">contentAuditResult</code> remain
+              advisory and do not block this action.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               variant="outline"
-              onClick={() => setCompletePipelineOpen(false)}
+              onClick={() => setMarkReadyOpen(false)}
             >
               Cancel
             </Button>
             <Button
-              onClick={handleCompletePipeline}
-              disabled={completePipeline.isPending}
+              onClick={handleMarkContentReady}
+              disabled={markContentReady.isPending}
             >
-              {completePipeline.isPending ? (
+              {markContentReady.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Finalizing…
+                  Marking ready…
                 </>
               ) : (
-                "Finalize page"
+                "Mark ready"
               )}
             </Button>
           </div>
