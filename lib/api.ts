@@ -6,10 +6,19 @@ function normalizeApiBase(url: string) {
   return `${trimmed}/api/v1`;
 }
 
-const API_BASE = normalizeApiBase(
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
+const SERVER_API_BASE = normalizeApiBase(
+  process.env.API_PROXY_TARGET ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
     "https://nestino-backend-production.up.railway.app/api/v1",
 );
+
+/** Browser uses same-origin /api/v1 (Next.js rewrite → backend) to avoid CORS on Vercel. */
+function getApiBase() {
+  if (typeof window !== "undefined") {
+    return "/api/v1";
+  }
+  return SERVER_API_BASE;
+}
 
 let accessToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
@@ -56,7 +65,7 @@ export async function apiFetch<T>(
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    res = await fetch(`${getApiBase()}${path}`, { ...options, headers });
   } catch {
     throw new ApiRequestError(
       "Cannot reach API server — check your connection and that the backend is running.",
