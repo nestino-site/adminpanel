@@ -54,9 +54,12 @@ export function canRegenerateHeroImage(
   return true;
 }
 
-export function canCompletePipeline(page: Page): boolean {
+export function canCompletePipeline(
+  page: Page,
+  hasContent = pageHasContent(page),
+): boolean {
   if (
-    !pageHasContent(page) ||
+    !hasContent ||
     !pageHasHeroImage(page) ||
     isPipelineRunning(page.pipelineStatus)
   ) {
@@ -66,6 +69,18 @@ export function canCompletePipeline(page: Page): boolean {
     page.pipelineStatus === "PARTIALLY_COMPLETED" ||
     page.pipelineStatus === "FAILED"
   );
+}
+
+/** Content + hero image done; pipeline stopped before READY (Flow A). */
+export function canFinalizeAfterImage(page: Page, hasContent: boolean): boolean {
+  return canCompletePipeline(page, hasContent);
+}
+
+export function getFinalizePipelineHint(page: Page): string {
+  if (page.pipelineStatus === "FAILED") {
+    return "Content and hero image are ready, but the pipeline failed at a later step. Finalize to run SEO check, internal linking, and schema without regenerating text or image.";
+  }
+  return "Content and hero image are ready. Finalize to finish SEO, linking, and schema.";
 }
 
 export function getPartialCompletionHint(page: Page): string | null {

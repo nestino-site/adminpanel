@@ -40,7 +40,8 @@ import {
   usePagePreview,
 } from "@/hooks/use-pages";
 import {
-  canCompletePipeline,
+  canFinalizeAfterImage,
+  getFinalizePipelineHint,
   canRegenerateHeroImage,
   canRetryImageGeneration,
   getPartialCompletionHint,
@@ -75,7 +76,9 @@ export default function PageDetailPage() {
   const showRegenerateHero = page
     ? canRegenerateHeroImage(page, hasContent)
     : false;
-  const showCompletePipeline = page ? canCompletePipeline(page) : false;
+  const showCompletePipeline = page
+    ? canFinalizeAfterImage(page, hasContent)
+    : false;
   const partialHint = page ? getPartialCompletionHint(page) : null;
 
   async function handlePublish() {
@@ -131,13 +134,15 @@ export default function PageDetailPage() {
 
   async function handleCompletePipeline() {
     try {
-      const result = await completePipeline.mutateAsync(undefined);
+      const fromStep =
+        page && pageHasHeroImage(page) ? ("seo_check" as const) : undefined;
+      const result = await completePipeline.mutateAsync(fromStep);
       setCompletePipelineOpen(false);
       toast.success(
-        `Pipeline resumed from ${result.resumedFrom} (task #${result.contentTaskId})`,
+        `Finalizing from ${result.resumedFrom} (task #${result.contentTaskId}) — page will poll until Ready`,
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Complete pipeline failed");
+      toast.error(e instanceof Error ? e.message : "Finalize failed");
     }
   }
 
@@ -236,8 +241,12 @@ export default function PageDetailPage() {
                 onClick={() => setCompletePipelineOpen(true)}
                 disabled={completePipeline.isPending || pipelineRunning}
               >
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Complete pipeline
+                {completePipeline.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                )}
+                Finalize page
               </Button>
             )}
             <Button
@@ -296,6 +305,36 @@ export default function PageDetailPage() {
           <CardTitle className="text-base">Pipeline</CardTitle>
         </CardHeader>
         <CardContent>
+          {showCompletePipeline && (
+            <div className="mb-4 rounded-lg border border-violet-300 bg-violet-50 px-4 py-4 dark:border-violet-800 dark:bg-violet-950/40">
+              <p className="mb-3 text-sm text-violet-950 dark:text-violet-100">
+                {getFinalizePipelineHint(page)}
+              </p>
+              <Button
+                onClick={() => setCompletePipelineOpen(true)}
+                disabled={completePipeline.isPending || pipelineRunning}
+              >
+                {completePipeline.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Finalizing…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Finalize page
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+          {(completePipeline.isPending ||
+            isPipelineRunning(page.pipelineStatus)) && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Finishing pipeline (SEO → linking → schema)…
+            </div>
+          )}
           {partialHint && (
             <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
               {partialHint}
@@ -509,10 +548,12 @@ export default function PageDetailPage() {
       <Dialog open={completePipelineOpen} onOpenChange={setCompletePipelineOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Complete pipeline?</DialogTitle>
+            <DialogTitle>Finalize page?</DialogTitle>
             <DialogDescription>
-              Finish SEO, linking, and finalize this page? The existing hero
-              image will be kept.
+              Content and hero image will be kept. This runs SEO check, YMYL
+              audit, internal linking, and schema steps from{" "}
+              <code className="text-xs">seo_check</code> until the page is
+              Ready. Progress updates automatically on this screen.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -529,10 +570,10 @@ export default function PageDetailPage() {
               {completePipeline.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Queuing…
+                  Finalizing…
                 </>
               ) : (
-                "Complete pipeline"
+                "Finalize page"
               )}
             </Button>
           </div>
