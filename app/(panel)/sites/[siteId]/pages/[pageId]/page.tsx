@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +41,7 @@ import {
 } from "@/hooks/use-pages";
 import {
   canCompletePipeline,
+  canRegenerateHeroImage,
   canRetryImageGeneration,
   getPartialCompletionHint,
   isPipelineRunning,
@@ -51,9 +54,11 @@ export default function PageDetailPage() {
   const { data: page, isLoading } = usePage(pageId);
   const { data: preview } = usePagePreview(pageId, siteId);
   const { data: logs } = usePageLogs(pageId, siteId);
-  const { generate, publish, retryImageGeneration, completePipeline } =
+  const { generate, publish, retryImageGeneration, regenerateHeroImage, completePipeline } =
     usePageMutations(pageId);
   const [retryImageOpen, setRetryImageOpen] = useState(false);
+  const [regenerateHeroOpen, setRegenerateHeroOpen] = useState(false);
+  const [uploadCdnOnRegenerate, setUploadCdnOnRegenerate] = useState(true);
   const [completePipelineOpen, setCompletePipelineOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -67,6 +72,7 @@ export default function PageDetailPage() {
   const hasContent = page ? pageHasContent(page) : !!content;
   const pipelineRunning = page ? isPipelineRunning(page.pipelineStatus) : false;
   const showRetryImage = page ? canRetryImageGeneration(page) : false;
+  const showRegenerateHero = page ? canRegenerateHeroImage(page) : false;
   const showCompletePipeline = page ? canCompletePipeline(page) : false;
   const partialHint = page ? getPartialCompletionHint(page) : null;
 
@@ -94,6 +100,30 @@ export default function PageDetailPage() {
       toast.success("Image generation retry queued");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Image retry failed");
+    }
+  }
+
+  async function handleRegenerateHeroImage() {
+    try {
+      const result = await regenerateHeroImage.mutateAsync({
+        uploadCdn: uploadCdnOnRegenerate,
+      });
+      setRegenerateHeroOpen(false);
+      if (result.cdn?.uploaded && result.cdn.cdnUrl) {
+        toast.success("Hero image regenerated", {
+          description: "Uploaded to CDN",
+        });
+      } else if (result.cdn?.skippedReason) {
+        toast.success("Hero image regenerated (CDN skipped)", {
+          description: result.cdn.skippedReason,
+        });
+      } else {
+        toast.success("Hero image regenerated");
+      }
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Hero image regeneration failed",
+      );
     }
   }
 
@@ -265,10 +295,36 @@ export default function PageDetailPage() {
 
       {pageHasHeroImage(page) && (
         <Card className="mb-6">
-          <CardHeader>
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-base">Hero image</CardTitle>
+            {showRegenerateHero && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRegenerateHeroOpen(true)}
+                disabled={regenerateHeroImage.isPending || pipelineRunning}
+              >
+                {regenerateHeroImage.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Regenerating…
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="mr-2 h-4 w-4" />
+                    Regenerate image
+                  </>
+                )}
+              </Button>
+            )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {regenerateHeroImage.isPending && (
+              <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                Regenerating hero image with Imagen (30–90s)…
+              </div>
+            )}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={
@@ -343,6 +399,53 @@ export default function PageDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={regenerateHeroOpen} onOpenChange={setRegenerateHeroOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Regenerate hero image?</DialogTitle>
+            <DialogDescription>
+              Generate a new Imagen hero image using the current article text.
+              Article content will not be changed. This takes about 30–90
+              seconds.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="upload-cdn"
+              checked={uploadCdnOnRegenerate}
+              onCheckedChange={(checked) =>
+                setUploadCdnOnRegenerate(checked === true)
+              }
+            />
+            <Label htmlFor="upload-cdn" className="text-sm font-normal">
+              Upload to CDN after generation (Cloudinary)
+            </Label>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setRegenerateHeroOpen(false)}
+              disabled={regenerateHeroImage.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRegenerateHeroImage}
+              disabled={regenerateHeroImage.isPending}
+            >
+              {regenerateHeroImage.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Regenerating…
+                </>
+              ) : (
+                "Regenerate image"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={retryImageOpen} onOpenChange={setRetryImageOpen}>
         <DialogContent>

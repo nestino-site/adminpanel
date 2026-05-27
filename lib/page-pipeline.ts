@@ -40,6 +40,17 @@ export function canRetryImageGeneration(page: Page): boolean {
   );
 }
 
+export function canRegenerateHeroImage(page: Page): boolean {
+  if (
+    !pageHasHeroImage(page) ||
+    !pageHasContent(page) ||
+    isPipelineRunning(page.pipelineStatus)
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export function canCompletePipeline(page: Page): boolean {
   if (
     !pageHasContent(page) ||

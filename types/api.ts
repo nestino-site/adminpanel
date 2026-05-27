@@ -251,6 +251,21 @@ export interface RetryImageGenerationResponse {
   checkpointLastStep: string;
 }
 
+export interface RegenerateHeroImageCdnResult {
+  pageId: number;
+  uploaded: boolean;
+  cdnUrl?: string | null;
+  skippedReason?: string | null;
+}
+
+export interface RegenerateHeroImageResponse {
+  pageId: number;
+  imagePrompt: string;
+  generatedImageBase64: boolean;
+  previousCdnUrlCleared: boolean;
+  cdn: RegenerateHeroImageCdnResult | null;
+}
+
 export type CompletePipelineFromStep =
   | "seo_check"
   | "internal_linking"

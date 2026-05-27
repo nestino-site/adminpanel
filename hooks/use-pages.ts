@@ -10,6 +10,7 @@ import type {
   ContentPreview,
   Page,
   PublishResult,
+  RegenerateHeroImageResponse,
   RetryImageGenerationResponse,
 } from "@/types/api";
 
@@ -54,6 +55,7 @@ export function usePageMutations(pageId: string) {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["pages", "detail", pageId] });
     qc.invalidateQueries({ queryKey: ["content-tasks"] });
+    qc.invalidateQueries({ queryKey: ["content-preview", pageId] });
   };
 
   return {
@@ -69,6 +71,16 @@ export function usePageMutations(pageId: string) {
         api.post<RetryImageGenerationResponse>(
           `/pages/${pageId}/retry-image-generation`,
         ),
+      onSuccess: invalidate,
+    }),
+    regenerateHeroImage: useMutation({
+      mutationFn: (options?: { uploadCdn?: boolean }) => {
+        const uploadCdn = options?.uploadCdn ?? true;
+        const qs = uploadCdn ? "" : "?uploadCdn=false";
+        return api.post<RegenerateHeroImageResponse>(
+          `/pages/${pageId}/regenerate-hero-image${qs}`,
+        );
+      },
       onSuccess: invalidate,
     }),
     completePipeline: useMutation({
