@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   CheckCircle2,
@@ -8,6 +8,7 @@ import {
   Loader2,
   RefreshCw,
   Send,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,7 +23,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkdownPreview } from "@/components/pages/markdown-preview";
-import { ContentAuditPanel } from "@/components/pages/content-audit-panel";
+import {
+  ContentAuditPanel,
+  type ContentAuditPanelHandle,
+} from "@/components/pages/content-audit-panel";
 import { PipelineStepper } from "@/components/pages/pipeline-stepper";
 import { YmylAuditBadge } from "@/components/pages/audit-badges";
 import { PageHeader } from "@/components/shared/page-header";
@@ -52,6 +56,8 @@ export default function PageDetailPage() {
   const [retryImageOpen, setRetryImageOpen] = useState(false);
   const [completePipelineOpen, setCompletePipelineOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const auditRef = useRef<ContentAuditPanelHandle>(null);
 
   const content =
     page?.finalContent ??
@@ -113,6 +119,13 @@ export default function PageDetailPage() {
     }
   }
 
+  function handleRunYmylAudit() {
+    document
+      .getElementById("content-audit")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    auditRef.current?.runAudit();
+  }
+
   if (isLoading || !page) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground">
@@ -172,6 +185,23 @@ export default function PageDetailPage() {
                 Complete pipeline
               </Button>
             )}
+            <Button
+              variant="outline"
+              onClick={handleRunYmylAudit}
+              disabled={auditLoading || !hasContent}
+              title={
+                hasContent
+                  ? undefined
+                  : "Generate content first or use Audit custom text in the panel below"
+              }
+            >
+              {auditLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="mr-2 h-4 w-4" />
+              )}
+              Run YMYL audit
+            </Button>
             <Button
               onClick={handlePublish}
               disabled={
@@ -252,11 +282,20 @@ export default function PageDetailPage() {
         </Card>
       )}
 
+      <div className="mb-6">
+        <ContentAuditPanel
+          ref={auditRef}
+          page={page}
+          pageId={pageId}
+          hasContent={hasContent}
+          onLoadingChange={setAuditLoading}
+        />
+      </div>
+
       <Tabs defaultValue="content">
         <TabsList>
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="meta">Meta</TabsTrigger>
-          <TabsTrigger value="audit">Content audit</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
         </TabsList>
         <TabsContent value="content" className="mt-4">
@@ -287,9 +326,6 @@ export default function PageDetailPage() {
               </p>
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="audit" className="mt-4">
-          <ContentAuditPanel page={page} pageId={pageId} />
         </TabsContent>
         <TabsContent value="logs" className="mt-4">
           <Card>

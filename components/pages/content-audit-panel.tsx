@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -203,13 +208,26 @@ function AuditContent({
   );
 }
 
-export function ContentAuditPanel({
-  page,
-  pageId,
-}: {
+export type ContentAuditPanelHandle = {
+  runAudit: () => void;
+  openCustomTextModal: () => void;
+  isLoading: boolean;
+};
+
+type ContentAuditPanelProps = {
   page: Page;
   pageId: string;
-}) {
+  hasContent?: boolean;
+  onLoadingChange?: (loading: boolean) => void;
+};
+
+export const ContentAuditPanel = forwardRef<
+  ContentAuditPanelHandle,
+  ContentAuditPanelProps
+>(function ContentAuditPanel(
+  { page, pageId, hasContent = true, onLoadingChange },
+  ref,
+) {
   const auditMutation = useAuditPage(pageId);
   const [spotCheckResult, setSpotCheckResult] = useState<AuditResult | null>(
     null,
@@ -239,8 +257,26 @@ export function ContentAuditPanel({
 
   const isLoading = auditMutation.isPending;
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      runAudit: () => {
+        void runAudit();
+      },
+      openCustomTextModal: () => setCustomTextOpen(true),
+      isLoading,
+    }),
+    [isLoading],
+  );
+
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
+
+  const canRunPageAudit = hasContent;
+
   return (
-    <Card>
+    <Card id="content-audit" className="scroll-mt-6">
       <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <CardTitle className="text-base">Content audit</CardTitle>
@@ -253,7 +289,12 @@ export function ContentAuditPanel({
             variant="outline"
             size="sm"
             onClick={() => runAudit()}
-            disabled={isLoading}
+            disabled={isLoading || !canRunPageAudit}
+            title={
+              canRunPageAudit
+                ? undefined
+                : "Generate content first or use Audit custom text"
+            }
           >
             {isLoading ? (
               <>
@@ -354,4 +395,4 @@ export function ContentAuditPanel({
       </Dialog>
     </Card>
   );
-}
+});

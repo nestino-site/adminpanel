@@ -1,24 +1,5 @@
 import type { ApiError } from "@/types/api";
-
-function normalizeApiBase(url: string) {
-  const trimmed = url.replace(/\/$/, "");
-  if (trimmed.endsWith("/api/v1")) return trimmed;
-  return `${trimmed}/api/v1`;
-}
-
-const SERVER_API_BASE = normalizeApiBase(
-  process.env.API_PROXY_TARGET ??
-    process.env.NEXT_PUBLIC_API_BASE_URL ??
-    "https://nestino-backend-production.up.railway.app/api/v1",
-);
-
-/** Browser uses same-origin /api/v1 (Next.js rewrite → backend) to avoid CORS on Vercel. */
-function getApiBase() {
-  if (typeof window !== "undefined") {
-    return "/api/v1";
-  }
-  return SERVER_API_BASE;
-}
+import { getApiBase } from "@/lib/api-base";
 
 let accessToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
