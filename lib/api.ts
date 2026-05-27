@@ -54,7 +54,16 @@ export async function apiFetch<T>(
     headers.set("X-Site-Api-Key", siteApiKey);
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  } catch {
+    throw new ApiRequestError(
+      "Cannot reach API server — check your connection and that the backend is running.",
+      0,
+      path,
+    );
+  }
 
   if (res.status === 401) {
     const isLogin = path.includes("/identity/login");
