@@ -197,6 +197,26 @@ export interface CreatePageBody {
   metaDescription?: string;
 }
 
+export type InternalLinkingAuditStatus = "approved" | "needs_fix";
+
+export interface InternalLinkingAudit {
+  status: InternalLinkingAuditStatus;
+  details: string;
+}
+
+export interface AuditResult {
+  approved: boolean;
+  eeat_score: number;
+  critical_errors: string;
+  seo_and_ux_recommendations: string;
+  internal_linking_audit: InternalLinkingAudit;
+}
+
+export interface SeoCheckIssues {
+  issues: string[];
+  googleChecklist?: Record<string, boolean>;
+}
+
 export interface Page {
   id: string;
   siteId: string;
@@ -212,6 +232,10 @@ export interface Page {
   metaTitle?: string;
   metaDescription?: string;
   seoScore?: number;
+  seoCheckScore?: number;
+  seoCheckPassed?: boolean;
+  seoCheckIssues?: SeoCheckIssues;
+  contentAuditResult?: AuditResult;
   geoScore?: number;
   publishedAt?: string;
   errorLog?: string;

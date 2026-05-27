@@ -22,6 +22,10 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import { SiteDetailTabs } from "@/components/sites/site-detail-tabs";
 import { StatusBadge } from "@/components/shared/status-badge";
+import {
+  SeoCheckBadge,
+  YmylAuditBadge,
+} from "@/components/pages/audit-badges";
 import { usePages } from "@/hooks/use-pages";
 import { formatDate } from "@/lib/utils";
 
@@ -29,11 +33,17 @@ export default function PagesListPage() {
   const { siteId } = useParams<{ siteId: string }>();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [pipelineFilter, setPipelineFilter] = useState<string>("all");
+  const [auditFilter, setAuditFilter] = useState<string>("all");
   const { data: pages, isLoading } = usePages(siteId);
 
   const filtered = pages?.filter((p) => {
     if (statusFilter !== "all" && p.status !== statusFilter) return false;
     if (pipelineFilter !== "all" && p.pipelineStatus !== pipelineFilter)
+      return false;
+    if (
+      auditFilter === "audit_failed" &&
+      p.contentAuditResult?.approved !== false
+    )
       return false;
     return true;
   });
@@ -73,6 +83,15 @@ export default function PagesListPage() {
             <SelectItem value="FAILED">Failed</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={auditFilter} onValueChange={setAuditFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Audit" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All audits</SelectItem>
+            <SelectItem value="audit_failed">Audit failed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-xl border bg-card">
@@ -83,7 +102,8 @@ export default function PagesListPage() {
               <TableHead>Slug</TableHead>
               <TableHead>Pipeline</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>SEO</TableHead>
+              <TableHead>SEO check</TableHead>
+              <TableHead>YMYL audit</TableHead>
               <TableHead>Published</TableHead>
               <TableHead />
             </TableRow>
@@ -91,7 +111,7 @@ export default function PagesListPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7}>Loading…</TableCell>
+                <TableCell colSpan={8}>Loading…</TableCell>
               </TableRow>
             ) : (
               filtered?.map((page) => (
@@ -106,7 +126,15 @@ export default function PagesListPage() {
                   <TableCell>
                     <StatusBadge status={page.status} kind="page" />
                   </TableCell>
-                  <TableCell>{page.seoScore?.toFixed(1) ?? "—"}</TableCell>
+                  <TableCell>
+                    <SeoCheckBadge
+                      passed={page.seoCheckPassed}
+                      score={page.seoCheckScore}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <YmylAuditBadge audit={page.contentAuditResult} />
+                  </TableCell>
                   <TableCell>{formatDate(page.publishedAt)}</TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm" asChild>

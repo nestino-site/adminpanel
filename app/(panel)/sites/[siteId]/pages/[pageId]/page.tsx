@@ -22,7 +22,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkdownPreview } from "@/components/pages/markdown-preview";
+import { ContentAuditPanel } from "@/components/pages/content-audit-panel";
 import { PipelineStepper } from "@/components/pages/pipeline-stepper";
+import { YmylAuditBadge } from "@/components/pages/audit-badges";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
@@ -183,6 +185,13 @@ export default function PageDetailPage() {
         }
       />
 
+      {page.pipelineStatus === "READY" &&
+        page.contentAuditResult?.approved === false && (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            YMYL audit flagged critical issues — review before publishing.
+          </div>
+        )}
+
       {!hasContent && !pipelineRunning && (
         <p className="mb-4 text-sm text-muted-foreground">
           No generated content yet — use Generate content to start the pipeline.
@@ -192,6 +201,9 @@ export default function PageDetailPage() {
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <StatusBadge status={page.pipelineStatus} kind="pipeline" />
         <StatusBadge status={page.status} kind="page" />
+        {page.contentAuditResult && (
+          <YmylAuditBadge audit={page.contentAuditResult} />
+        )}
       </div>
 
       <Card className="mb-6">
@@ -244,6 +256,7 @@ export default function PageDetailPage() {
         <TabsList>
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="meta">Meta</TabsTrigger>
+          <TabsTrigger value="audit">Content audit</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
         </TabsList>
         <TabsContent value="content" className="mt-4">
@@ -274,6 +287,9 @@ export default function PageDetailPage() {
               </p>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="audit" className="mt-4">
+          <ContentAuditPanel page={page} pageId={pageId} />
         </TabsContent>
         <TabsContent value="logs" className="mt-4">
           <Card>

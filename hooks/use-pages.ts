@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { auditPage } from "@/lib/audit";
 import { api, apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 import type {
+  AuditResult,
   CompletePipelineFromStep,
   CompletePipelineResponse,
   ContentPreview,
@@ -110,4 +112,20 @@ export function usePageLogs(pageId: string | undefined, siteId: string) {
       apiFetch<unknown[]>(`/content/${pageId}/logs`, {}, siteApiKey),
     enabled: !!pageId && !!siteApiKey,
   });
+}
+
+export function useAuditPage(pageId: string) {
+  return useMutation({
+    mutationFn: (content?: string) => auditPage(pageId, content),
+  });
+}
+
+export function getAuditErrorMessage(error: unknown): string {
+  if (error instanceof Error && "statusCode" in error) {
+    const statusCode = (error as { statusCode: number }).statusCode;
+    if (statusCode === 422) {
+      return "No content to audit — generate content first or paste text in the custom audit modal.";
+    }
+  }
+  return error instanceof Error ? error.message : "Audit failed";
 }
