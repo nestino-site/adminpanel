@@ -13,6 +13,7 @@ import type {
   RegenerateHeroImageResponse,
   MarkContentReadyResponse,
   RetryImageGenerationResponse,
+  UpdatePageContentResult,
 } from "@/types/api";
 
 const TERMINAL_PIPELINE = new Set(["READY", "FAILED"]);
@@ -109,6 +110,11 @@ export function usePageMutations(pageId: string) {
     update: useMutation({
       mutationFn: (body: Record<string, unknown>) =>
         api.patch<Page>(`/pages/${pageId}`, body),
+      onSuccess: invalidate,
+    }),
+    updateContent: useMutation({
+      mutationFn: (body: { finalContent: string; republish?: boolean }) =>
+        api.patch<UpdatePageContentResult>(`/pages/${pageId}/content`, body),
       onSuccess: invalidate,
     }),
   };

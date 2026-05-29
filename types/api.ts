@@ -237,6 +237,7 @@ export interface Page {
   seoCheckIssues?: SeoCheckIssues;
   contentAuditResult?: AuditResult;
   geoScore?: number;
+  wordCount?: number;
   publishedAt?: string;
   errorLog?: string;
   createdAt?: string;
@@ -270,6 +271,23 @@ export interface MarkContentReadyResponse {
   pageId: number;
   pipelineStatus: PipelineStatus;
   message: string;
+}
+
+export interface UpdatePageContentBody {
+  finalContent: string;
+  republish?: boolean;
+}
+
+export interface UpdatePageContentResult {
+  id: number;
+  slug: string;
+  status: PageStatus;
+  pipelineStatus: PipelineStatus;
+  wordCount: number;
+  republished: boolean;
+  webhookFired: boolean;
+  humanEditedAt: string;
+  updatedAt: string;
 }
 
 export type CompletePipelineFromStep =

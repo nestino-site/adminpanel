@@ -94,6 +94,16 @@ export function getMarkContentReadyHint(page: Page): string {
   return "Content and hero image are ready. Mark ready to approve for publish — audit warnings do not block this step.";
 }
 
+export function canEditPageContent(page: Page): boolean {
+  const hasFinal = Boolean(page.finalContent?.trim());
+  if (!hasFinal) return false;
+  return (
+    page.pipelineStatus === "READY" ||
+    page.pipelineStatus === "PARTIALLY_COMPLETED" ||
+    page.pipelineStatus === "FAILED"
+  );
+}
+
 export function getPartialCompletionHint(page: Page): string | null {
   if (page.pipelineStatus !== "PARTIALLY_COMPLETED") return null;
   if (pageHasHeroImage(page)) {

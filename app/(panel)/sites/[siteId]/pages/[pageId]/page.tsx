@@ -29,6 +29,7 @@ import {
   ContentAuditPanel,
   type ContentAuditPanelHandle,
 } from "@/components/pages/content-audit-panel";
+import { ContentEditorPanel } from "@/components/pages/content-editor-panel";
 import { PipelineStepper } from "@/components/pages/pipeline-stepper";
 import { YmylAuditBadge } from "@/components/pages/audit-badges";
 import { PageHeader } from "@/components/shared/page-header";
@@ -40,6 +41,7 @@ import {
   usePagePreview,
 } from "@/hooks/use-pages";
 import {
+  canEditPageContent,
   canMarkContentReady,
   getMarkContentReadyHint,
   canRegenerateHeroImage,
@@ -77,6 +79,7 @@ export default function PageDetailPage() {
     ? canRegenerateHeroImage(page, hasContent)
     : false;
   const showMarkReady = page ? canMarkContentReady(page, hasContent) : false;
+  const showEditContent = page ? canEditPageContent(page) : false;
   const partialHint = page ? getPartialCompletionHint(page) : null;
 
   async function handlePublish() {
@@ -407,6 +410,9 @@ export default function PageDetailPage() {
       <Tabs defaultValue="content">
         <TabsList>
           <TabsTrigger value="content">Content</TabsTrigger>
+          {showEditContent && (
+            <TabsTrigger value="edit">Edit content</TabsTrigger>
+          )}
           <TabsTrigger value="meta">Meta</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
         </TabsList>
@@ -417,6 +423,11 @@ export default function PageDetailPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        {showEditContent && (
+          <TabsContent value="edit" className="mt-4">
+            <ContentEditorPanel page={page} pageId={pageId} />
+          </TabsContent>
+        )}
         <TabsContent value="meta" className="mt-4">
           <Card>
             <CardContent className="space-y-2 pt-6 text-sm">
