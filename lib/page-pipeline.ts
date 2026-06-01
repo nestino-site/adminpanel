@@ -95,7 +95,9 @@ export function getMarkContentReadyHint(page: Page): string {
 }
 
 export function canEditPageContent(page: Page): boolean {
-  const hasFinal = Boolean(page.finalContent?.trim());
+  const finalContent = page.finalContent;
+  const hasFinal =
+    typeof finalContent === "string" && finalContent.trim().length > 0;
   if (!hasFinal) return false;
   return (
     page.pipelineStatus === "READY" ||

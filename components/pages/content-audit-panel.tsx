@@ -36,8 +36,10 @@ import { getAuditErrorMessage, useAuditPage } from "@/hooks/use-pages";
 import { cn } from "@/lib/utils";
 import type { AuditResult, Page } from "@/types/api";
 
-function isSystemAuditError(criticalErrors: string): boolean {
-  return criticalErrors.trim().startsWith("Audit failed due to system error");
+function isSystemAuditError(criticalErrors?: string | null): boolean {
+  return (criticalErrors?.trim() ?? "").startsWith(
+    "Audit failed due to system error",
+  );
 }
 
 function AuditContent({
@@ -49,9 +51,11 @@ function AuditContent({
   page: Page;
   isSpotCheck: boolean;
 }) {
-  const showCriticalErrors =
-    !audit.approved || audit.critical_errors.trim().length > 0;
+  const criticalErrors = audit.critical_errors?.trim() ?? "";
+  const seoRecommendations = audit.seo_and_ux_recommendations?.trim() ?? "";
+  const showCriticalErrors = !audit.approved || criticalErrors.length > 0;
   const linking = audit.internal_linking_audit;
+  const linkingDetails = linking?.details?.trim() ?? "";
 
   return (
     <div className="space-y-4">
@@ -124,7 +128,7 @@ function AuditContent({
             Critical errors
           </div>
           <pre className="whitespace-pre-wrap text-sm text-destructive">
-            {audit.critical_errors || "Content did not pass YMYL approval."}
+            {criticalErrors || "Content did not pass YMYL approval."}
           </pre>
           {isSystemAuditError(audit.critical_errors) && (
             <p className="mt-2 text-xs text-muted-foreground">
@@ -135,41 +139,43 @@ function AuditContent({
         </div>
       )}
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Link2 className="h-4 w-4" aria-hidden />
-            Internal linking
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Badge
-            variant={
-              linking.status === "approved" ? "success" : "warning"
-            }
-            className="gap-1"
-          >
-            {linking.status === "approved" ? (
-              <CheckCircle2 className="h-3 w-3" aria-hidden />
-            ) : (
-              <AlertTriangle className="h-3 w-3" aria-hidden />
+      {linking && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Link2 className="h-4 w-4" aria-hidden />
+              Internal linking
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Badge
+              variant={
+                linking.status === "approved" ? "success" : "warning"
+              }
+              className="gap-1"
+            >
+              {linking.status === "approved" ? (
+                <CheckCircle2 className="h-3 w-3" aria-hidden />
+              ) : (
+                <AlertTriangle className="h-3 w-3" aria-hidden />
+              )}
+              {linking.status === "approved" ? "Approved" : "Needs fix"}
+            </Badge>
+            {linkingDetails && (
+              <details className="text-sm">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                  Details
+                </summary>
+                <pre className="mt-2 whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs">
+                  {linking.details}
+                </pre>
+              </details>
             )}
-            {linking.status === "approved" ? "Approved" : "Needs fix"}
-          </Badge>
-          {linking.details.trim() && (
-            <details className="text-sm">
-              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                Details
-              </summary>
-              <pre className="mt-2 whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs">
-                {linking.details}
-              </pre>
-            </details>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {audit.seo_and_ux_recommendations.trim() && (
+      {seoRecommendations && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
@@ -178,7 +184,7 @@ function AuditContent({
           </CardHeader>
           <CardContent>
             <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
-              {audit.seo_and_ux_recommendations}
+              {seoRecommendations}
             </pre>
           </CardContent>
         </Card>

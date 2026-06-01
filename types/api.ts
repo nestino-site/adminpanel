@@ -201,15 +201,15 @@ export type InternalLinkingAuditStatus = "approved" | "needs_fix";
 
 export interface InternalLinkingAudit {
   status: InternalLinkingAuditStatus;
-  details: string;
+  details?: string | null;
 }
 
 export interface AuditResult {
   approved: boolean;
   eeat_score: number;
-  critical_errors: string;
-  seo_and_ux_recommendations: string;
-  internal_linking_audit: InternalLinkingAudit;
+  critical_errors?: string | null;
+  seo_and_ux_recommendations?: string | null;
+  internal_linking_audit?: InternalLinkingAudit | null;
 }
 
 export interface SeoCheckIssues {
