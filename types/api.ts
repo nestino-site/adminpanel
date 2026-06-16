@@ -290,6 +290,22 @@ export interface UpdatePageContentResult {
   updatedAt: string;
 }
 
+export interface UpdatePageSlugBody {
+  slug: string;
+  republish?: boolean;
+}
+
+export interface UpdatePageSlugResult {
+  id: number;
+  slug: string;
+  previousSlug: string;
+  status: PageStatus;
+  changed: boolean;
+  republished: boolean;
+  webhookFired: boolean;
+  updatedAt: string;
+}
+
 export type CompletePipelineFromStep =
   | "seo_check"
   | "internal_linking"

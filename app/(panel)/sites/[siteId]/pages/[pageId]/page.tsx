@@ -30,6 +30,7 @@ import {
   type ContentAuditPanelHandle,
 } from "@/components/pages/content-audit-panel";
 import { ContentEditorPanel } from "@/components/pages/content-editor-panel";
+import { PageSlugEditor } from "@/components/pages/page-slug-editor";
 import { PipelineStepper } from "@/components/pages/pipeline-stepper";
 import { YmylAuditBadge } from "@/components/pages/audit-badges";
 import { PageHeader } from "@/components/shared/page-header";
@@ -428,7 +429,8 @@ export default function PageDetailPage() {
             <ContentEditorPanel page={page} pageId={pageId} />
           </TabsContent>
         )}
-        <TabsContent value="meta" className="mt-4">
+        <TabsContent value="meta" className="mt-4 space-y-4">
+          <PageSlugEditor page={page} pageId={pageId} siteId={siteId} />
           <Card>
             <CardContent className="space-y-2 pt-6 text-sm">
               <p>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { auditPage } from "@/lib/audit";
 import { api, apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
+import { ApiRequestError } from "@/lib/api";
 import type {
   AuditResult,
   CompletePipelineFromStep,
@@ -14,6 +15,8 @@ import type {
   MarkContentReadyResponse,
   RetryImageGenerationResponse,
   UpdatePageContentResult,
+  UpdatePageSlugBody,
+  UpdatePageSlugResult,
 } from "@/types/api";
 
 const TERMINAL_PIPELINE = new Set(["READY", "FAILED"]);
@@ -52,12 +55,18 @@ export function usePage(pageId: string | undefined) {
   return query;
 }
 
-export function usePageMutations(pageId: string) {
+export function usePageMutations(pageId: string, siteId?: string) {
   const qc = useQueryClient();
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["pages", "detail", pageId] });
     qc.invalidateQueries({ queryKey: ["content-tasks"] });
     qc.invalidateQueries({ queryKey: ["content-preview", pageId] });
+  };
+  const invalidateWithList = () => {
+    invalidate();
+    if (siteId) {
+      qc.invalidateQueries({ queryKey: ["pages", siteId] });
+    }
   };
 
   return {
@@ -117,6 +126,11 @@ export function usePageMutations(pageId: string) {
         api.patch<UpdatePageContentResult>(`/pages/${pageId}/content`, body),
       onSuccess: invalidate,
     }),
+    updateSlug: useMutation({
+      mutationFn: (body: UpdatePageSlugBody) =>
+        api.patch<UpdatePageSlugResult>(`/pages/${pageId}/slug`, body),
+      onSuccess: invalidateWithList,
+    }),
   };
 }
 
@@ -154,4 +168,17 @@ export function getAuditErrorMessage(error: unknown): string {
     }
   }
   return error instanceof Error ? error.message : "Audit failed";
+}
+
+export function getSlugErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError) {
+    if (error.statusCode === 409) {
+      return "URL already in use";
+    }
+    if (error.statusCode === 404) {
+      return "Page not found.";
+    }
+    return error.message;
+  }
+  return error instanceof Error ? error.message : "Slug update failed";
 }
